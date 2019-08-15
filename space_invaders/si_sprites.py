@@ -18,9 +18,11 @@ class Enemy(arcade.Sprite):
             texture_list {List} -- Images to show as enemy moves
             points {int} -- How many points is this enemy worth when destroyed
         """
+
+        # super.__init__() needs an image, so we give it one.
         super().__init__("space_invaders/images/alien1.png", scale=SCALING)
 
-        # Start at the first frame
+        # Start at the first texture
         self.current_texture = 0
         self.textures = texture_list
         self.set_texture(self.current_texture)
@@ -45,6 +47,16 @@ class Explosion(arcade.Sprite):
     animation_repeat = 0
 
     def __init__(self, texture_list, repeat=10):
+        """Create a new explosion sprite
+        
+        Arguments:
+            texture_list {List} -- Images to show as we explode
+        
+        Keyword Arguments:
+            repeat {int} -- How many times do we repeat the explosion animation (default: {10})
+        """
+
+        # super.__init__() needs an image, so give it one
         super().__init__("space_invaders/images/player.png", scale=SCALING)
 
         # Start at the first frame
@@ -52,10 +64,12 @@ class Explosion(arcade.Sprite):
         self.textures = texture_list
         self.set_texture(self.current_texture)
         self.animation_repeat = repeat
-        # To count how many rotations we've done
+        # To count how many animations we've done
         self.count = 0
 
     def update(self):
+        """Updates the current image to display
+        """
 
         # Update to the next frame of the animation.
         self.current_texture += 1
