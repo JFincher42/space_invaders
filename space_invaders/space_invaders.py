@@ -3,91 +3,15 @@
 # Imports
 import arcade
 import random
+# from constants import SCALING, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_TITLE, BACKGROUND_COLOR, RIGHT_EDGE, LEFT_EDGE
+from constants import *
+from si_sprites import Enemy, Explosion
 
-# Game Constants
-SCALING = 6
-SCREEN_WIDTH = 180 * SCALING
-SCREEN_HEIGHT = 200 * SCALING
-SCREEN_TITLE = "Space Invaders"
-BACKGROUND_COLOR = arcade.csscolor.BLACK
 
 # Classes
 
-
-class Enemy(arcade.Sprite):
-    """Displays an enemy on the screen
-    """
-
-    # Static variable to hold points for this enemy
-    points = 0
-
-    def __init__(self, texture_list, points):
-        """Creates a new enemy sprite
-
-        Arguments:
-            texture_list {List} -- Images to show as enemy moves
-            points {int} -- How many points is this enemy worth when destroyed
-        """
-        super().__init__("space_invaders/images/alien1.png", scale=SCALING)
-
-        # Start at the first frame
-        self.current_texture = 0
-        self.textures = texture_list
-        self.set_texture(self.current_texture)
-        self.points = points
-
-    def update(self):
-        """Updates the current image to display
-        """
-
-        self.current_texture += 1
-        if self.current_texture > len(self.textures):
-            self.current_texture = 0
-        self.set_texture(self.current_texture)
-
-
-class Explosion(arcade.Sprite):
-    """Displays an explosion animation when required
-    """
-
-    # Static variable that holds all the explosion textures
-    textures = []
-    animation_repeat = 0
-
-    def __init__(self, texture_list, repeat=10):
-        super().__init__("space_invaders/images/player.png", scale=SCALING)
-
-        # Start at the first frame
-        self.current_texture = 0
-        self.textures = texture_list
-        self.set_texture(self.current_texture)
-        self.animation_repeat = repeat
-        # To count how many rotations we've done
-        self.count = 0
-
-    def update(self):
-
-        # Update to the next frame of the animation.
-        self.current_texture += 1
-        if self.current_texture < len(self.textures):
-            self.set_texture(self.current_texture)
-
-        # If we are at the last frame, check if we still have animation to do
-        # If so, start over
-        else:
-            self.count += 1
-            if self.count < self.animation_repeat:
-                self.current_texture = 0
-                self.set_texture(self.current_texture)
-
-            # If not, kill the sprite.
-            else:
-                self.kill()
-
-
 class SpaceInvadersGame(arcade.Window):
     """The Space Invaders game window. Subclass of arcade.Window.
-
     """
 
     def __init__(self):
@@ -103,6 +27,16 @@ class SpaceInvadersGame(arcade.Window):
         self.sprite_list = arcade.SpriteList()
         self.score = 0
         self.player = None
+
+        # Set the alien direction - right is True, left is False
+        self.alien_direction = True
+
+        # How many seconds between alien moves?
+        self.alien_speed = 1.0
+        self.alien_last_time_moved = 0.0
+        self.alien_acceleration = 0.05
+        # Did the aliens last move down?
+        self.alien_moved_down = False
 
     def setup(self):
         """Sets up the game to play. To restart the game, this function is called.
@@ -141,17 +75,129 @@ class SpaceInvadersGame(arcade.Window):
             for i in range(10):
                 alien = Enemy(alien_texture, alien_points)
                 alien.center_x, alien.center_y = (
-                    i * 16 * SCALING + 40,
+                    i * 16 * SCALING + 120,
                     alien_center_y,
                 )
                 self.enemy_list.append(alien)
                 self.sprite_list.append(alien)
 
     def on_draw(self):
-
+        """Draws everything on the screen
+        """
         arcade.start_render()
         self.sprite_list.draw()
-        self.enemy_list.draw()
+    
+    def on_update(self, delta_time):
+        """Updates the position of all on screen items
+        
+        Arguments:
+            delta_time {float} -- How much time has passed since our last call
+        """
+        # return super().on_update(delta_time)
+
+        # First check for collisions between player shots and aliens
+        # TBD
+
+        # Next check for collisions between player shots and alien shots
+        # TBD
+
+        # Now check for collisions between alien shots and the player
+        # TBD
+
+        # Time to move the aliens?
+        self.alien_last_time_moved += delta_time
+        if self.alien_last_time_moved > self.alien_speed:
+            # If we last moved down, we shouldn't check again
+            if self.alien_moved_down:
+                self.alien_moved_down = False
+
+            else:
+                # Do we need to switch alien direction?
+                if self.alien_direction and self.find_max_x(self.enemy_list) >= RIGHT_EDGE:
+                    self.alien_moved_down = True
+                elif not self.alien_direction and self.find_min_x(self.enemy_list) <= LEFT_EDGE:
+                    self.alien_moved_down = True
+
+            # Now we can move the aliens
+            if self.alien_moved_down:
+                self.alien_direction = not self.alien_direction
+                self.move_down(self.enemy_list, 1*SCALING)
+                self.alien_speed -= self.alien_acceleration
+            else:
+                if self.alien_direction:
+                    self.move_right(self.enemy_list, 1*SCALING)
+                else:
+                    self.move_left(self.enemy_list, 1*SCALING)
+
+            # Don't forget to update the sprite textures as well
+            self.enemy_list.update()
+            
+            # Finally, reset the timer
+            self.alien_last_time_moved = 0.0
+
+
+        # And the player
+        pass
+
+    def find_max_x(self, spr_list:arcade.SpriteList):
+        """Finds the right-most edge of the sprites in the given list
+        
+        Arguments:
+            spr_list {arcade.SpriteList} -- A list of sprites to check
+        
+        Returns:
+            int -- The largest X coordinate where a sprite will be drawn
+        """
+        x = LEFT_EDGE
+        for sprite in spr_list:
+            if sprite.right > x:
+                x = sprite.right
+        return x
+
+    def find_min_x(self, spr_list:arcade.SpriteList):
+        """Finds the left-most edge of the sprites in the given list
+        
+        Arguments:
+            spr_list {arcade.SpriteList} -- A list of sprites to check
+        
+        Returns:
+            int -- The smallesdt X coordinate where a sprite will be drawn
+        """
+        x = RIGHT_EDGE
+        for sprite in spr_list:
+            if sprite.left < x:
+                x = sprite.left
+        return x
+
+    def move_down(self, spr_list:arcade.SpriteList, amount:int):
+        """Move a set of sprites down
+        
+        Arguments:
+            spr_list {arcade.SpriteList} -- The list of sprites to move
+            amount {int} -- How much to move them
+        """
+        for sprite in spr_list:
+            sprite.center_y -= amount
+
+    def move_right(self, spr_list:arcade.SpriteList, amount:int):
+        """Move a set of sprites to the right
+        
+        Arguments:
+            spr_list {arcade.SpriteList} -- The list of sprites to move
+            amount {int} -- How much to move them
+        """
+        for sprite in spr_list:
+            sprite.center_x += amount
+
+    def move_left(self, spr_list:arcade.SpriteList, amount:int):
+        """Move a set of sprites to the left
+        
+        Arguments:
+            spr_list {arcade.SpriteList} -- The list of sprites to move
+            amount {int} -- How much to move them
+        """
+        for sprite in spr_list:
+            sprite.center_x -= amount
 
 
 # Main code
