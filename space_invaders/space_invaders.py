@@ -3,12 +3,13 @@
 # Imports
 import arcade
 import random
-# from constants import SCALING, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_TITLE, BACKGROUND_COLOR, RIGHT_EDGE, LEFT_EDGE
+
 from constants import *
 from si_sprites import Enemy, Explosion
 
 
 # Classes
+
 
 class SpaceInvadersGame(arcade.Window):
     """The Space Invaders game window. Subclass of arcade.Window.
@@ -27,6 +28,11 @@ class SpaceInvadersGame(arcade.Window):
         self.sprite_list = arcade.SpriteList()
         self.score = 0
         self.player = None
+
+        # Variable for keypresses
+        self.left_pressed = False
+        self.right_pressed = False
+        self.space_pressed = False
 
         # Set the alien direction - right is True, left is False
         self.alien_direction = True
@@ -81,15 +87,48 @@ class SpaceInvadersGame(arcade.Window):
                 self.enemy_list.append(alien)
                 self.sprite_list.append(alien)
 
+    def on_key_press(self, symbol: int, modifiers: int):
+        """Processes a key press for the game
+        
+        Arguments:
+            symbol {int} -- The keys currently being pressed
+            modifiers {int} -- Any key modifierd being pressed
+        
+        Returns:
+            [type] -- [description]
+        """
+        # return super().on_key_press(symbol, modifiers)
+        if arcade.key.LEFT == symbol:
+            self.left_pressed = True
+        if arcade.key.RIGHT == symbol:
+            self.right_pressed = True
+        if arcade.key.SPACE == symbol:
+            self.space_pressed = True
+
+    def on_key_release(self, symbol: int, modifiers: int):
+        """Handles key release events
+        
+        Arguments:
+            symbol {int} -- The key which was released
+            modifiers {int} -- Any modifiers active when the key was released
+        """
+        # return super().on_key_release(symbol, modifiers)
+        if arcade.key.LEFT == symbol:
+            self.left_pressed = False
+        if arcade.key.RIGHT == symbol:
+            self.right_pressed = False
+        if arcade.key.SPACE == symbol:
+            self.space_pressed = False
+
     def on_draw(self):
         """Draws everything on the screen
         """
         arcade.start_render()
         self.sprite_list.draw()
-    
+
     def on_update(self, delta_time):
         """Updates the position of all on screen items
-        
+
         Arguments:
             delta_time {float} -- How much time has passed since our last call
         """
@@ -113,33 +152,45 @@ class SpaceInvadersGame(arcade.Window):
 
             else:
                 # Do we need to switch alien direction?
-                if self.alien_direction and self.find_max_x(self.enemy_list) >= RIGHT_EDGE:
+                if (
+                    self.alien_direction
+                    and self.find_max_x(self.enemy_list) >= RIGHT_EDGE
+                ):
                     self.alien_moved_down = True
-                elif not self.alien_direction and self.find_min_x(self.enemy_list) <= LEFT_EDGE:
+                elif (
+                    not self.alien_direction
+                    and self.find_min_x(self.enemy_list) <= LEFT_EDGE
+                ):
                     self.alien_moved_down = True
 
             # Now we can move the aliens
             if self.alien_moved_down:
                 self.alien_direction = not self.alien_direction
-                self.move_down(self.enemy_list, 1*SCALING)
+                self.move_down(self.enemy_list, 1 * SCALING)
                 self.alien_speed -= self.alien_acceleration
             else:
                 if self.alien_direction:
-                    self.move_right(self.enemy_list, 1*SCALING)
+                    self.move_right(self.enemy_list, 1 * SCALING)
                 else:
-                    self.move_left(self.enemy_list, 1*SCALING)
+                    self.move_left(self.enemy_list, 1 * SCALING)
 
             # Don't forget to update the sprite textures as well
             self.enemy_list.update()
-            
+
             # Finally, reset the timer
             self.alien_last_time_moved = 0.0
 
+        # And then the player
+        if self.left_pressed and not self.right_pressed:
+            self.player.center_x -= PLAYER_MOVE
+        if self.right_pressed and not self.left_pressed:
+            self.player.center_x += PLAYER_MOVE
+        if self.player.left < LEFT_EDGE:
+            self.player.left = LEFT_EDGE
+        if self.player.right > RIGHT_EDGE:
+            self.player.right = RIGHT_EDGE
 
-        # And the player
-        pass
-
-    def find_max_x(self, spr_list:arcade.SpriteList):
+    def find_max_x(self, spr_list: arcade.SpriteList):
         """Finds the right-most edge of the sprites in the given list
         
         Arguments:
@@ -154,7 +205,7 @@ class SpaceInvadersGame(arcade.Window):
                 x = sprite.right
         return x
 
-    def find_min_x(self, spr_list:arcade.SpriteList):
+    def find_min_x(self, spr_list: arcade.SpriteList):
         """Finds the left-most edge of the sprites in the given list
         
         Arguments:
@@ -169,7 +220,7 @@ class SpaceInvadersGame(arcade.Window):
                 x = sprite.left
         return x
 
-    def move_down(self, spr_list:arcade.SpriteList, amount:int):
+    def move_down(self, spr_list: arcade.SpriteList, amount: int):
         """Move a set of sprites down
         
         Arguments:
@@ -179,7 +230,7 @@ class SpaceInvadersGame(arcade.Window):
         for sprite in spr_list:
             sprite.center_y -= amount
 
-    def move_right(self, spr_list:arcade.SpriteList, amount:int):
+    def move_right(self, spr_list: arcade.SpriteList, amount: int):
         """Move a set of sprites to the right
         
         Arguments:
@@ -189,7 +240,7 @@ class SpaceInvadersGame(arcade.Window):
         for sprite in spr_list:
             sprite.center_x += amount
 
-    def move_left(self, spr_list:arcade.SpriteList, amount:int):
+    def move_left(self, spr_list: arcade.SpriteList, amount: int):
         """Move a set of sprites to the left
         
         Arguments:
